@@ -1,0 +1,129 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String          @id @default(cuid())
+  email          String          @unique
+  passwordHash   String
+  role           Role            @default(USER)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  changeRequests ChangeRequest[]
+  persons        Person[]
+  trees          Tree[]          @relation("Owner")
+  treeAccess     TreeAccess[]
+}
+
+model Tree {
+  id             String          @id @default(cuid())
+  name           String          @default("Моё семейное древо")
+  ownerId        String
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  changeRequests ChangeRequest[]
+  persons        Person[]
+  owner          User            @relation("Owner", fields: [ownerId], references: [id], onDelete: Cascade)
+  accessors      TreeAccess[]
+}
+
+model TreeAccess {
+  id      String  @id @default(cuid())
+  treeId  String
+  userId  String
+  canEdit Boolean @default(false)
+  tree    Tree    @relation(fields: [treeId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([treeId, userId])
+}
+
+model Person {
+  id             String         @id @default(cuid())
+  firstName      String
+  middleName     String?
+  lastName       String?
+  birthDate      DateTime?
+  deathDate      DateTime?
+  gender         Gender
+  biography      String?
+  photos         String[]       @default([])
+  mainPhotoIndex Int            @default(0)
+  positionX      Float?
+  positionY      Float?
+  status         Status         @default(APPROVED)
+  treeId         String?
+  ownerId        String
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  owner          User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  tree           Tree?          @relation(fields: [treeId], references: [id], onDelete: Cascade)
+  relationships1 Relationship[] @relation("Person1")
+  relationships2 Relationship[] @relation("Person2")
+}
+
+model Relationship {
+  id           String       @id @default(cuid())
+  person1Id    String
+  person2Id    String
+  relationType RelationType
+  status       Status       @default(APPROVED)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  person1      Person       @relation("Person1", fields: [person1Id], references: [id], onDelete: Cascade)
+  person2      Person       @relation("Person2", fields: [person2Id], references: [id], onDelete: Cascade)
+
+  @@unique([person1Id, person2Id, relationType])
+}
+
+model ChangeRequest {
+  id          String     @id @default(cuid())
+  type        ActionType
+  targetModel String
+  targetId    String?
+  data        Json
+  status      Status     @default(PENDING)
+  requesterId String
+  treeId      String
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  requester   User       @relation(fields: [requesterId], references: [id])
+  tree        Tree       @relation(fields: [treeId], references: [id], onDelete: Cascade)
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum RelationType {
+  PARENT
+  SPOUSE
+  CHILD
+  BROTHER
+  SISTER
+  PUPIL
+}
+
+enum Status {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ActionType {
+  CREATE
+  UPDATE
+  DELETE
+}
