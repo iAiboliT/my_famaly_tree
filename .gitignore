@@ -1,0 +1,13 @@
+node_modules/
+.next/
+.env
+out/
+build/
+dist/
+*.log
+*.exe
+*.pkg
+*.pyc
+__pycache__/
+.DS_Store
+Thumbs.db
